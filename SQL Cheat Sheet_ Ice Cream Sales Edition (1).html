@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Cheat Sheet: Ice Cream Sales Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F1F7; --surface:#FFFFFF; --ink:#3A2217; --muted:#7A6258; --line:#E6DAE3;
+  --straw:#D14D6E; --straw-soft:#FBE3EA; --pista:#6E9A4B; --pista-soft:#E7F1DE;
+  --mango:#E09A2C; --mango-soft:#FBEFD9; --blue:#4B62A8; --blue-soft:#E4E9F7; --code-bg:#FBF7FB; --kw:#B03A5B; --fn:#4B62A8; --str:#5E8A3C; --num:#C07A14; --cmt:#9A8A8F;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1D1411; --surface:#2A1E19; --ink:#F4E7DC; --muted:#BFA99C; --line:#3E2E27;
+    --straw:#F07B97; --straw-soft:#43242C; --pista:#9CC67A; --pista-soft:#2A3522;
+    --mango:#F2B65A; --mango-soft:#3A2C18; --blue:#95A9EC; --blue-soft:#232A42; --code-bg:#231915; --kw:#F58FA8; --fn:#95A9EC; --str:#A8D48A; --num:#F2B65A; --cmt:#8C7A72;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1D1411; --surface:#2A1E19; --ink:#F4E7DC; --muted:#BFA99C; --line:#3E2E27;
+  --straw:#F07B97; --straw-soft:#43242C; --pista:#9CC67A; --pista-soft:#2A3522;
+  --mango:#F2B65A; --mango-soft:#3A2C18; --blue:#95A9EC; --blue-soft:#232A42; --code-bg:#231915; --kw:#F58FA8; --fn:#95A9EC; --str:#A8D48A; --num:#F2B65A; --cmt:#8C7A72;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 20px 64px}
+h1,h2,h3{font-family:"Young Serif",Georgia,"Times New Roman",serif;font-weight:400;margin:0}
+h1{font-size:clamp(2rem,5vw,3.25rem);line-height:1.1;max-width:18ch}
+.lede{max-width:62ch;color:var(--muted);margin:14px 0 0;font-size:1.05rem}
+code,pre{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+
+/* hero: the shop's sales table as a menu board */
+.hero{display:grid;grid-template-columns:1fr;gap:28px;margin-bottom:40px}
+@media(min-width:900px){.hero{grid-template-columns:0.9fr 1.1fr;align-items:end}}
+.board{background:var(--surface);border:2px solid var(--ink);border-radius:18px;padding:18px 18px 12px;position:relative}
+.board h2{font-size:1.25rem;margin-bottom:10px}
+.board h2 code{font-size:.95rem;color:var(--straw)}
+.scroll{overflow-x:auto}
+table.sample{border-collapse:collapse;width:100%;font-size:.9rem}
+table.sample thead th{position:sticky;top:0;background:var(--surface);}
+table.sample th{text-align:left;font-weight:600;color:var(--muted);padding:6px 8px;border-bottom:2px dashed var(--line);white-space:nowrap}
+table.sample td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.sample td.n{text-align:right;font-variant-numeric:tabular-nums}
+table.sample th.n{text-align:right}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.others{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:.85rem;color:var(--muted)}
+.others code{color:var(--ink);font-size:.82rem}
+
+.board-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.board-top h2{margin:0}
+.pick{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.pick select{font:inherit;font-size:.95rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--ink);border-radius:10px;padding:6px 10px;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.pick select:focus-visible,.copy:focus-visible,.setup summary:focus-visible{outline:3px solid var(--mango);outline-offset:2px}
+.tdesc{margin:4px 0 10px;color:var(--muted);font-size:.92rem}
+.tbox{max-height:300px;overflow-y:auto}
+.links{margin:10px 0 2px;font-size:.85rem;color:var(--muted)}
+.links code{color:var(--ink);font-size:.82rem}
+.setup{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:0 0 26px}
+.setup summary{cursor:pointer;font-family:"Young Serif",Georgia,serif;font-size:1.15rem}
+.setup p{max-width:68ch;color:var(--muted);font-size:.95rem}
+.setup a{color:var(--kw)}
+.copy{font:inherit;font-size:.9rem;font-weight:600;border:none;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;cursor:pointer;margin-bottom:10px}
+.setup pre{max-height:360px;overflow:auto}
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 22px}
+.chip{font:inherit;font-size:.92rem;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chip:focus-visible,.search:focus-visible{outline:3px solid var(--mango);outline-offset:2px}
+.search{font:inherit;font-size:.95rem;flex:1 1 220px;max-width:340px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.count{color:var(--muted);font-size:.9rem;margin-left:auto}
+
+/* sheet */
+.colhead{display:none}
+@media(min-width:900px){
+  .colhead{display:grid;grid-template-columns:190px 1fr;border:1px solid transparent;padding:0 0 8px;font-weight:600;color:var(--muted);font-size:.9rem;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;padding-top:8px}
+}
+.group{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+
+.focus{padding:14px 18px;background:var(--code-bg)}
+.focus h3{font-size:1.15rem;line-height:1.25}
+.tag{display:inline-block;margin-top:6px;font-size:.78rem;font-weight:600;color:var(--accent)}
+.row{padding:14px 18px;border-top:1px solid var(--line);display:grid;gap:8px}
+.row:first-child{border-top:none}
+.syntax code{font-weight:500;font-size:.92rem;color:var(--kw);background:var(--code-bg);padding:2px 6px;border-radius:6px;display:inline-block;max-width:100%;overflow-wrap:anywhere}
+.row>div{min-width:0}
+.purpose{font-size:.95rem}
+.lbl{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:2px}
+pre{margin:0;background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.82rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.k{color:var(--kw);font-weight:500}.f{color:var(--fn)}.s{color:var(--str)}.d{color:var(--num)}.c{color:var(--cmt);font-style:italic}
+@media(min-width:900px){
+  .group{display:grid;grid-template-columns:190px 1fr}
+  .focus{padding:18px}
+  .row,.colrow{grid-template-columns:minmax(0,22fr) minmax(0,28fr) minmax(0,50fr);gap:18px;align-items:start;padding:16px 18px}
+  .colrow{display:grid;padding-top:0;padding-bottom:0;border-left:1px solid transparent}
+  .colhead>span{padding:0 18px}
+  .row .lbl{display:none}
+  .rows{border-left:1px solid var(--line)}
+}
+.empty{padding:30px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:14px}
+
+/* query runner */
+.runbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0 16px}
+.runbar .copy{margin:0}
+.chip:disabled{opacity:.4;cursor:default}
+.panes{display:grid;gap:16px}
+@media(min-width:900px){.panes{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:start}}
+.capcode{padding:10px 0}
+.capcode .ln{display:block;padding:0 12px;border-left:3px solid transparent;transition:opacity .3s,background-color .3s}
+.capcode.active .ln{opacity:.4}
+.capcode.active .ln.on{opacity:1;background:var(--straw-soft);border-left-color:var(--straw)}
+.result{background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-height:220px}
+.result h3{font-size:1.1rem;margin-bottom:4px}
+.result p{margin:0 0 12px;font-size:.92rem;color:var(--muted);max-width:none}
+.rtable td,.rtable th{white-space:nowrap}
+.rtable th.new,.rtable td.new{background:var(--pista-soft)}
+.rtable tr.band td{background:color-mix(in srgb,var(--line) 45%,transparent)}
+.rtable tr.band td.new{background:var(--pista-soft)}
+.rtable tr.win td{font-weight:600}
+.rtable td .pts{display:inline-block;min-width:1.6em;text-align:center;border-radius:6px;padding:0 4px}
+.rtable td .pts.p5{background:var(--straw);color:#fff}
+.rtable td .pts.p1{background:var(--mango);color:#fff}
+@keyframes rowIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.rtable tbody tr.enter{animation:rowIn .35s ease both}
+@media (prefers-reduced-motion: reduce){.rtable tbody tr.enter{animation:none}.capcode .ln{transition:none}}
+/* capstone */
+.capstone{margin-top:44px;background:var(--surface);border:2px solid var(--ink);border-radius:18px;padding:22px}
+.capstone h2{font-size:1.5rem;margin-bottom:8px}
+.capstone p{max-width:66ch;color:var(--muted);margin:0 0 14px}
+.note{margin-top:28px;font-size:.88rem;color:var(--muted);max-width:70ch}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <h1>SQL cheat sheet, served one scoop at a time</h1>
+      <p class="lede">Every example on this page queries the same small ice cream shop, so you can focus on what each piece of syntax does rather than on a new dataset each time.</p>
+    </div>
+    <div class="board">
+      <div class="board-top">
+        <h2>The shop's database</h2>
+        <label class="pick">Choose a table
+          <select id="tablePick" aria-label="Choose a table to preview"></select>
+        </label>
+      </div>
+      <p class="tdesc" id="tableDesc"></p>
+      <div class="scroll tbox"><table class="sample" id="tableView"></table></div>
+      <p class="links" id="tableLinks"></p>
+    </div>
+  </header>
+
+
+  <details class="setup">
+    <summary>Run the examples yourself</summary>
+    <p>Copy this script into a free SQL playground such as <a href="https://www.db-fiddle.com" target="_blank" rel="noopener">DB Fiddle</a> . It creates all four tables with the sample rows above, so the examples on this page run as written. It works in PostgreSQL, MySQL, SQL Server and SQLite.</p>
+    <button class="copy" id="copyBtn" type="button">Copy setup script</button>
+    <pre id="setupSql"></pre>
+  </details>
+
+  <div class="controls" role="group" aria-label="Filter the cheat sheet">
+    <input class="search" type="search" placeholder="Search syntax, e.g. JOIN or RANK" aria-label="Search syntax">
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="colhead" aria-hidden="true"><span>Main focus</span><div class="colrow"><span>Syntax</span><span>Purpose</span><span>Example</span></div></div>
+  <main id="sheet"></main>
+
+  <section class="capstone">
+    <h2>Putting it together: flavor of the month</h2>
+    <p>A classic SQL test pattern: each month, the flavor with the most customers wins 5 points, tied leaders get 1 each, and the rest get 0. Run the query to see what each part produces before the final result.</p>
+    <div class="runbar">
+      <button class="copy" id="runBtn" type="button">Run the query</button>
+      <button class="chip" id="prevBtn" type="button">Back</button>
+      <button class="chip" id="nextBtn" type="button">Next step</button>
+      <span class="count" id="stepCount"></span>
+    </div>
+    <div class="panes">
+      <pre class="capcode" id="capCode"></pre>
+      <div class="result" aria-live="polite">
+        <h3 id="stepTitle">Result</h3>
+        <p id="stepText">Press Run the query to watch it work one step at a time, or use Next step to go at your own pace.</p>
+        <div class="scroll"><table class="sample rtable" id="stepTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">All examples are written in standard SQL, which is what most SQL tests expect. Databases differ in a few places: MySQL, PostgreSQL and SQLite also accept <code>LIMIT n</code>, SQL Server also uses <code>TOP n</code>, and SQL Server and SQLite use their own date functions (<code>DATEPART</code> and <code>strftime</code>) instead of <code>EXTRACT</code>.</p>
+</div>
+
+<script>
+const G = [
+ {focus:"Retrieving data", rows:[
+  ["SELECT … FROM","Chooses which columns to return and which table to read from.","SELECT flavor, price, customers\nFROM ice_cream_sales;"],
+  ["AS (alias)","Renames a column or table in the output, making results and long queries easier to read.","SELECT flavor  AS ice_cream,\n       revenue AS daily_revenue\nFROM ice_cream_sales AS s;"],
+  ["WHERE","Keeps only the rows that meet a condition.","SELECT *\nFROM ice_cream_sales\nWHERE flavor = 'Mango';"]
+ ]},
+ {focus:"Filtering with operators", rows:[
+  ["=  <>  >  <  >=  <=","Compares a column against a value.","SELECT flavor, customers\nFROM ice_cream_sales\nWHERE customers >= 50;"],
+  ["AND / OR / NOT","Combines several conditions. Use brackets to control which ones group together.","SELECT *\nFROM ice_cream_sales\nWHERE flavor = 'Vanilla'\n  AND (customers > 40 OR revenue > 200);"],
+  ["BETWEEN / NOT BETWEEN","Filters to an inclusive range of numbers or dates, or everything outside it.","SELECT *\nFROM ice_cream_sales\nWHERE sale_date BETWEEN '2026-07-01' AND '2026-07-31'\n  AND price NOT BETWEEN 3 AND 4;"],
+  ["IN / NOT IN","Matches any value in a list, or excludes every value in it.","SELECT *\nFROM ice_cream_sales\nWHERE flavor IN ('Mango', 'Strawberry', 'Lychee');"]
+ ]},
+ {focus:"Sorting and paging", rows:[
+  ["ORDER BY … ASC / DESC","Sorts the results by one or more columns.","SELECT flavor, revenue\nFROM ice_cream_sales\nORDER BY revenue DESC, flavor ASC;"],
+  ["FETCH FIRST n ROWS ONLY","Returns only the first n rows, typically for a top-N list. Many databases also accept the shorter LIMIT n.","SELECT flavor, revenue\nFROM ice_cream_sales\nORDER BY revenue DESC\nFETCH FIRST 5 ROWS ONLY;  -- top 5 sale days"],
+  ["OFFSET n ROWS","Skips the first n rows. Paired with FETCH, it pages through results.","SELECT flavor, revenue\nFROM ice_cream_sales\nORDER BY revenue DESC\nOFFSET 5 ROWS\nFETCH NEXT 5 ROWS ONLY;  -- ranks 6 to 10"]
+ ]},
+ {focus:"Expressions and calculations", rows:[
+  ["+  -  *  /","Calculates a new value from existing columns on each row.","SELECT flavor,\n       price * customers AS expected_revenue\nFROM ice_cream_sales;"],
+  ["ROUND( ) / ABS( )","Tidies numbers: ROUND sets decimal places, ABS removes the minus sign to show size of a difference.","SELECT flavor,\n       ROUND(revenue / customers, 2)        AS avg_spend,\n       ABS(revenue - price * customers)     AS mismatch\nFROM ice_cream_sales;"]
+ ]},
+ {focus:"Aggregate functions", rows:[
+  ["COUNT( )","Counts rows, or distinct values with COUNT(DISTINCT …).","SELECT COUNT(*)               AS sale_rows,\n       COUNT(DISTINCT flavor) AS flavors_sold\nFROM ice_cream_sales;"],
+  ["SUM( )","Adds up a numeric column.","SELECT SUM(revenue) AS july_revenue\nFROM ice_cream_sales\nWHERE sale_date BETWEEN '2026-07-01' AND '2026-07-31';"],
+  ["AVG( )","Calculates the mean of a numeric column.","SELECT AVG(customers) AS avg_customers\nFROM ice_cream_sales;"],
+  ["MIN( ) / MAX( )","Finds the smallest or largest value.","SELECT MIN(price) AS cheapest_scoop,\n       MAX(price) AS priciest_scoop\nFROM ice_cream_sales;"]
+ ]},
+ {focus:"Grouping", rows:[
+  ["GROUP BY","Collapses rows into one row per group so aggregates run per group.","SELECT flavor, SUM(revenue) AS revenue\nFROM ice_cream_sales\nGROUP BY flavor;"],
+  ["HAVING","Filters groups after aggregation. WHERE filters rows before it.","SELECT flavor, SUM(customers) AS customers\nFROM ice_cream_sales\nGROUP BY flavor\nHAVING SUM(customers) > 100;"]
+ ]},
+ {focus:"Joining tables", rows:[
+  ["INNER JOIN … ON","Returns only rows with a match in both tables.","SELECT s.flavor, f.category, s.revenue\nFROM ice_cream_sales s\nJOIN flavors f ON s.flavor = f.flavor;"],
+  ["LEFT JOIN","Keeps every row from the left table and fills NULL where the right has no match.","-- flavors on the menu, even with no sales\nSELECT f.flavor, SUM(s.revenue) AS revenue\nFROM flavors f\nLEFT JOIN ice_cream_sales s ON s.flavor = f.flavor\nGROUP BY f.flavor;"],
+  ["RIGHT JOIN","Keeps every row from the right table. Same as a LEFT JOIN with the tables swapped.","SELECT st.city, s.flavor, s.revenue\nFROM ice_cream_sales s\nRIGHT JOIN stores st ON s.store_id = st.store_id;"],
+  ["FULL OUTER JOIN","Keeps every row from both tables, matched where possible. Useful for spotting mismatches. Not supported in MySQL.","SELECT f.flavor AS on_menu, s.flavor AS sold\nFROM flavors f\nFULL OUTER JOIN ice_cream_sales s ON f.flavor = s.flavor\nWHERE f.flavor IS NULL OR s.flavor IS NULL;"]
+ ]},
+ {focus:"Changing data", rows:[
+  ["INSERT INTO … VALUES","Adds new rows.","INSERT INTO ice_cream_sales\n  (sale_date, store_id, flavor, price, customers, revenue)\nVALUES ('2026-09-25', 1, 'Pistachio', 4.50, 38, 171.00);"],
+  ["UPDATE … SET","Changes values in existing rows. Always add a WHERE, or every row changes.","UPDATE ice_cream_sales\nSET price = 4.75\nWHERE flavor = 'Pistachio'\n  AND sale_date = '2026-09-25';"],
+  ["DELETE FROM","Removes rows. Always add a WHERE, or the table empties.","DELETE FROM ice_cream_sales\nWHERE customers = 0;"]
+ ]},
+ {focus:"Table structure", rows:[
+  ["CREATE TABLE","Defines a new table, its columns and their data types.","CREATE TABLE toppings (\n  topping    VARCHAR(40) PRIMARY KEY,\n  price      NUMERIC(4,2),\n  calories   INT\n);"],
+  ["ALTER TABLE","Changes an existing table, such as adding or dropping a column.","ALTER TABLE ice_cream_sales\nADD COLUMN weather VARCHAR(20);"],
+  ["DROP TABLE","Deletes a table and all its data permanently.","DROP TABLE toppings;"]
+ ]},
+ {focus:"Conditional logic", rows:[
+  ["CASE WHEN … THEN … ELSE … END","Returns different values depending on conditions, like an IF inside a query. Used for labels, buckets and points.","SELECT flavor, customers,\n       CASE WHEN customers >= 60 THEN 'Hit'\n            WHEN customers >= 30 THEN 'Steady'\n            ELSE 'Slow' END AS demand\nFROM ice_cream_sales;"]
+ ]},
+ {focus:"Working with dates", rows:[
+  ["EXTRACT(part FROM date)","Pulls one part out of a date, such as the year, month or day, so you can group or filter by it.","SELECT EXTRACT(YEAR FROM sale_date)  AS sale_year,\n       EXTRACT(MONTH FROM sale_date) AS sale_month,\n       SUM(revenue) AS revenue\nFROM ice_cream_sales\nGROUP BY EXTRACT(YEAR FROM sale_date),\n         EXTRACT(MONTH FROM sale_date)\nORDER BY sale_year, sale_month;"]
+ ]},
+ {focus:"Subqueries", rows:[
+  ["( SELECT … ) inside a query","Uses the result of one query inside another, such as comparing each row to an overall average.","SELECT flavor, sale_date, revenue\nFROM ice_cream_sales\nWHERE revenue > (SELECT AVG(revenue)\n                 FROM ice_cream_sales);"]
+ ]},
+ {focus:"Common table expressions", rows:[
+  ["WITH name AS ( … )","Names a temporary result you can query like a table. Breaks a long problem into readable steps.","WITH monthly AS (\n  SELECT flavor,\n         EXTRACT(MONTH FROM sale_date) AS sale_month,\n         SUM(revenue) AS revenue\n  FROM ice_cream_sales\n  GROUP BY flavor, EXTRACT(MONTH FROM sale_date)\n)\nSELECT *\nFROM monthly\nWHERE revenue > 500;"]
+ ]},
+ {focus:"Window functions", rows:[
+  ["… OVER (PARTITION BY …)","Calculates across a group of rows while keeping every row. GROUP BY collapses rows; a window does not.","SELECT sale_date, flavor, revenue,\n       SUM(revenue) OVER (PARTITION BY sale_date)\n         AS day_total\nFROM ice_cream_sales;"],
+  ["ROW_NUMBER / RANK / DENSE_RANK","Numbers rows within each group. ROW_NUMBER is always unique; RANK gives ties the same number then skips (1, 1, 3); DENSE_RANK doesn't skip (1, 1, 2).","SELECT sale_date, flavor, revenue,\n       RANK() OVER (PARTITION BY sale_date\n                    ORDER BY revenue DESC) AS day_rank\nFROM ice_cream_sales;"],
+  ["SUM( ) OVER (ORDER BY …)","Adding ORDER BY inside OVER turns a total into a running total.","SELECT flavor, sale_date, revenue,\n       SUM(revenue) OVER (PARTITION BY flavor\n                          ORDER BY sale_date) AS running_revenue\nFROM ice_cream_sales;"],
+  ["LAG( ) / LEAD( )","Reads a value from the previous or next row, for day-over-day or month-over-month changes.","SELECT flavor, sale_date, revenue,\n       revenue - LAG(revenue) OVER (PARTITION BY flavor\n                                    ORDER BY sale_date)\n         AS change_vs_prev_day\nFROM ice_cream_sales;"]
+ ]},
+ {focus:"Combining results", rows:[
+  ["UNION ALL / UNION","Stacks the rows of two queries that return the same columns. UNION ALL keeps duplicates and is faster; UNION removes them.","SELECT flavor, 'On the menu' AS source\nFROM flavors\nUNION ALL\nSELECT flavor, 'Sold'\nFROM ice_cream_sales;"]
+ ]},
+ {focus:"Temporal (date-range) joins", rows:[
+  ["JOIN … ON date BETWEEN start AND end","Matches each row to whatever was valid on that date, such as a promotion, price list or team roster.","SELECT s.sale_date, s.flavor, s.revenue, p.promo_name\nFROM ice_cream_sales s\nLEFT JOIN promotions p\n  ON s.sale_date BETWEEN p.start_date AND p.end_date;"]
+ ]}
+];
+
+const KW = new Set("SELECT FROM WHERE AS AND OR NOT BETWEEN IN ORDER BY ASC DESC LIMIT OFFSET FETCH FIRST NEXT ROWS ONLY YEAR MONTH GROUP HAVING JOIN LEFT RIGHT FULL OUTER INNER ON INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE ALTER ADD COLUMN DROP IF EXISTS PRIMARY KEY CASE WHEN THEN ELSE END WITH OVER PARTITION UNION ALL IS NULL DISTINCT VARCHAR NUMERIC".split(" "));
+const FN = new Set("COUNT SUM AVG MIN MAX ROUND ABS EXTRACT RANK ROW_NUMBER DENSE_RANK LAG LEAD".split(" "));
+const esc = t => t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function hl(sql){
+  return esc(sql).replace(/(--[^\n]*)|('(?:[^']|'')*')|\b([A-Z_]{2,})\b|\b(\d+(?:\.\d+)?)\b/g,(m,c,s,w,n)=>{
+    if(c) return `<span class="c">${c}</span>`;
+    if(s) return `<span class="s">${s}</span>`;
+    if(w) return FN.has(w)?`<span class="f">${w}</span>`:KW.has(w)?`<span class="k">${w}</span>`:w;
+    if(n) return `<span class="d">${n}</span>`;
+    return m;
+  });
+}
+
+const sheet = document.getElementById("sheet");
+const countEl = document.getElementById("count");
+let query = "";
+
+function render(){
+  const q = query.trim().toLowerCase();
+  let shown = 0, html = "";
+  for(const [i,g] of G.entries()){
+    const rows = g.rows.filter(r => !q || (g.focus+" "+r.join(" ")).toLowerCase().includes(q));
+    if(!rows.length) continue;
+    shown += rows.length;
+    html += `<section class="group">
+      <div class="focus"><h3>${esc(g.focus)}</h3></div>
+      <div class="rows">${rows.map(r=>`
+        <div class="row">
+          <div class="syntax"><code>${esc(r[0])}</code></div>
+          <div class="purpose"><span class="lbl">Purpose</span>${esc(r[1])}</div>
+          <div><span class="lbl">Example</span><pre>${hl(r[2])}</pre></div>
+        </div>`).join("")}</div>
+    </section>`;
+  }
+  sheet.innerHTML = html || `<div class="empty">No syntax matches “${esc(query)}”. Try a keyword such as JOIN, SUM or OVER.</div>`;
+  countEl.textContent = `${shown} ${shown===1?"syntax":"syntaxes"} shown`;
+}
+
+document.querySelector(".search").addEventListener("input",e=>{query=e.target.value;render();});
+render();
+
+const TABLES = {
+ ice_cream_sales:{desc:"The main table. One row per flavor, per store, per day, with price, customer count and revenue.",
+  cols:["sale_date","store_id","flavor","price","customers","revenue"], num:[1,3,4,5], types:["DATE","INT","VARCHAR(40)","NUMERIC(5,2)","INT","NUMERIC(8,2)"],
+  rows:[
+   ["2026-07-01",1,"Mango","4.50",62,"279.00"],["2026-07-01",1,"Strawberry","4.00",48,"192.00"],["2026-07-01",2,"Chocolate","4.25",55,"233.75"],
+   ["2026-07-02",1,"Pistachio","5.00",31,"155.00"],["2026-07-02",2,"Vanilla","3.75",70,"262.50"],["2026-07-02",2,"Mango","4.50",58,"261.00"],
+   ["2026-07-15",1,"Chocolate","4.25",40,"170.00"],["2026-07-15",2,"Strawberry","4.00",52,"208.00"],["2026-08-03",1,"Mango","4.50",45,"202.50"],
+   ["2026-08-03",2,"Vanilla","3.75",66,"247.50"],["2026-08-21",1,"Pistachio","5.00",28,"140.00"],["2026-08-21",2,"Chocolate","4.25",66,"280.50"]],
+  links:'Links to <code>flavors</code> on flavor, to <code>stores</code> on store_id, and to <code>promotions</code> when sale_date falls between a promotion\'s start and end dates.'},
+ flavors:{desc:"The menu. Each flavor's category and what one scoop costs the shop to make. Lychee is on the menu but has no sales yet.",
+  cols:["flavor","category","cost_per_scoop"], num:[2], types:["VARCHAR(40) PRIMARY KEY","VARCHAR(20)","NUMERIC(5,2)"],
+  rows:[["Mango","Fruit","1.20"],["Strawberry","Fruit","1.10"],["Chocolate","Chocolate","1.30"],["Pistachio","Nut","1.80"],["Vanilla","Classic","0.90"],["Lychee","Fruit","1.40"]],
+  links:'Links to <code>ice_cream_sales</code> on flavor.'},
+ stores:{desc:"The shop's locations. Brisbane has just opened and has no sales yet.",
+  cols:["store_id","city"], num:[0], types:["INT PRIMARY KEY","VARCHAR(40)"],
+  rows:[[1,"Sydney"],[2,"Melbourne"],[3,"Brisbane"]],
+  links:'Links to <code>ice_cream_sales</code> on store_id.'},
+ promotions:{desc:"Deals the shop ran, and the dates each was active. The discount is a fraction off the price.",
+  cols:["promo_name","start_date","end_date","discount"], num:[3], types:["VARCHAR(40)","DATE","DATE","NUMERIC(3,2)"],
+  rows:[["Summer 2-for-1","2026-07-01","2026-07-15","0.50"],["Back to School","2026-08-20","2026-08-31","0.20"]],
+  links:'Links to <code>ice_cream_sales</code> by date: a sale belongs to a promotion when its sale_date is between start_date and end_date.'}
+};
+const pick=document.getElementById("tablePick");
+Object.keys(TABLES).forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;pick.appendChild(o);});
+function showTable(n){
+  const t=TABLES[n];
+  document.getElementById("tableDesc").textContent=t.desc;
+  document.getElementById("tableLinks").innerHTML=t.links;
+  document.getElementById("tableView").innerHTML=
+   "<thead><tr>"+t.cols.map((c,i)=>`<th${t.num.includes(i)?' class="n"':''}>${c}</th>`).join("")+"</tr></thead><tbody>"+
+   t.rows.map(r=>"<tr>"+r.map((v,i)=>`<td${t.num.includes(i)?' class="n"':''}>${esc(String(v))}</td>`).join("")+"</tr>").join("")+"</tbody>";
+}
+pick.addEventListener("change",()=>showTable(pick.value));
+showTable("ice_cream_sales");
+
+const lit=v=>typeof v==="number"?String(v):/^\d+(\.\d+)?$/.test(v)?v:"'"+v.replace(/'/g,"''")+"'";
+const order=["flavors","stores","promotions","ice_cream_sales"];
+let script="-- Ice cream shop sample database (standard SQL)\n\n";
+for(const n of order){
+  const t=TABLES[n];
+  script+=`CREATE TABLE ${n} (\n`+t.cols.map((c,i)=>`  ${c.padEnd(15)}${t.types[i]}`).join(",\n")+"\n);\n\n";
+  script+=`INSERT INTO ${n} (${t.cols.join(", ")}) VALUES\n`+t.rows.map(r=>"  ("+r.map(lit).join(", ")+")").join(",\n")+";\n\n";
+}
+script=script.trim();
+const setupPre=document.getElementById("setupSql");
+setupPre.innerHTML=hl(script);
+const copyBtn=document.getElementById("copyBtn");
+copyBtn.addEventListener("click",async()=>{
+  let ok=false;
+  try{await navigator.clipboard.writeText(script);ok=true;}catch(e){
+    try{const ta=document.createElement("textarea");ta.value=script;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();ok=document.execCommand("copy");ta.remove();}catch(e2){}
+  }
+  if(!ok){const r=document.createRange();r.selectNodeContents(setupPre);const s=getSelection();s.removeAllRanges();s.addRange(r);}
+  copyBtn.textContent=ok?"Copied":"Selected. Press Ctrl+C or Cmd+C to copy";
+  setTimeout(()=>copyBtn.textContent="Copy setup script",2500);
+});
+
+/* ---------- query runner ---------- */
+const CAP_SQL = `WITH monthly AS (
+  SELECT flavor,
+         EXTRACT(MONTH FROM sale_date) AS sale_month,
+         SUM(customers) AS customers
+  FROM ice_cream_sales
+  GROUP BY flavor, EXTRACT(MONTH FROM sale_date)
+),
+ranked AS (
+  SELECT *,
+         RANK()   OVER (PARTITION BY sale_month ORDER BY customers DESC) AS rnk,
+         COUNT(*) OVER (PARTITION BY sale_month, customers)              AS tied
+  FROM monthly
+),
+scored AS (
+  SELECT *,
+         CASE WHEN rnk = 1 AND tied = 1 THEN 5   -- outright winner
+              WHEN rnk = 1 AND tied > 1 THEN 1   -- shared top spot
+              ELSE 0 END AS points
+  FROM ranked
+)
+SELECT flavor, SUM(points) AS total_points
+FROM scored
+GROUP BY flavor
+ORDER BY total_points DESC;`;
+const capLines = CAP_SQL.split("\n");
+const capEl = document.getElementById("capCode");
+capEl.innerHTML = capLines.map((l,i)=>`<span class="ln" data-l="${i}">${hl(l)||" "}</span>`).join("");
+
+const sales = TABLES.ice_cream_sales.rows.map(r=>({sale_date:r[0],flavor:r[2],customers:+r[4],sale_month:+r[0].slice(5,7)}));
+const mMap = new Map();
+for(const s of sales){const k=s.flavor+"|"+s.sale_month;const o=mMap.get(k)||{flavor:s.flavor,sale_month:s.sale_month,customers:0};o.customers+=s.customers;mMap.set(k,o);}
+const monthly=[...mMap.values()].sort((a,b)=>a.sale_month-b.sale_month||b.customers-a.customers||a.flavor.localeCompare(b.flavor));
+const ranked=monthly.map(r=>({...r,
+  rnk:1+monthly.filter(o=>o.sale_month===r.sale_month&&o.customers>r.customers).length,
+  tied:monthly.filter(o=>o.sale_month===r.sale_month&&o.customers===r.customers).length}));
+const scored=ranked.map(r=>({...r,points:r.rnk===1&&r.tied===1?5:r.rnk===1&&r.tied>1?1:0}));
+const fMap=new Map();for(const r of scored)fMap.set(r.flavor,(fMap.get(r.flavor)||0)+r.points);
+const finalRows=[...fMap].map(([flavor,total_points])=>({flavor,total_points})).sort((a,b)=>b.total_points-a.total_points||a.flavor.localeCompare(b.flavor));
+
+const findLine=t=>capLines.findIndex(l=>l.includes(t));
+const L={from:findLine("FROM ice_cream_sales"),ranked:findLine("ranked AS"),scored:findLine("scored AS"),final:findLine("SELECT flavor, SUM(points)")};
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+const STEPS=[
+ {title:"Step 1: Read the source table",lines:[L.from],
+  text:`The query starts from ice_cream_sales: ${sales.length} rows, one per flavor, store and day. Only the date, flavor and customer count matter here.`,
+  cols:["sale_date","flavor","customers"],rows:sales},
+ {title:"Step 2: monthly",lines:range(0,L.ranked-1),
+  text:`EXTRACT pulls the month out of each date, then GROUP BY collapses rows into one per flavor per month and SUM adds up the customers. ${sales.length} rows become ${monthly.length}.`,
+  cols:["flavor","sale_month","customers"],rows:monthly,band:true,newCols:["sale_month","customers"]},
+ {title:"Step 3: ranked",lines:range(L.ranked,L.scored-1),
+  text:"Window functions look across each month without collapsing rows. RANK orders the flavors by customers, and COUNT counts how many flavors share the same number. In August, Vanilla and Chocolate tie at 66, so both rank 1 and tied is 2.",
+  cols:["flavor","sale_month","customers","rnk","tied"],rows:ranked,band:true,newCols:["rnk","tied"]},
+ {title:"Step 4: scored",lines:range(L.scored,L.final-1),
+  text:"CASE turns each result into points. July's outright leader gets 5, August's two tied leaders get 1 each, and everyone else gets 0.",
+  cols:["flavor","sale_month","customers","rnk","tied","points"],rows:scored,band:true,newCols:["points"],win:true},
+ {title:"Step 5: Final result",lines:range(L.final,capLines.length-1),
+  text:"GROUP BY flavor adds up each flavor's points across all months, and ORDER BY sorts from most points to fewest. This is what the query returns.",
+  cols:["flavor","total_points"],rows:finalRows,newCols:["total_points"],win:true}
+];
+
+let step=-1,timer=null;
+const runBtn=document.getElementById("runBtn"),prevBtn=document.getElementById("prevBtn"),nextBtn=document.getElementById("nextBtn");
+function drawStep(){
+  const st=STEPS[step];
+  capEl.classList.toggle("active",step>=0);
+  capEl.querySelectorAll(".ln").forEach(el=>el.classList.toggle("on",!!st&&st.lines.includes(+el.dataset.l)));
+  document.getElementById("stepCount").textContent=step>=0?`Step ${step+1} of ${STEPS.length}`:"";
+  prevBtn.disabled=step<=0; nextBtn.disabled=step>=STEPS.length-1;
+  if(!st)return;
+  document.getElementById("stepTitle").textContent=st.title;
+  document.getElementById("stepText").textContent=st.text;
+  const isNum=c=>typeof st.rows[0][c]==="number";
+  const nc=c=>(st.newCols||[]).includes(c)?" new":"";
+  let prevMonth=null,bandOn=false;
+  document.getElementById("stepTable").innerHTML=
+   "<thead><tr>"+st.cols.map(c=>`<th class="${isNum(c)?"n":""}${nc(c)}">${c}</th>`).join("")+"</tr></thead><tbody>"+
+   st.rows.map((r,i)=>{
+     if(st.band&&r.sale_month!==prevMonth){if(prevMonth!==null)bandOn=!bandOn;prevMonth=r.sale_month;}
+     const cls=["enter"];if(st.band&&bandOn)cls.push("band");
+     const pts=r.points??r.total_points;if(st.win&&pts>0)cls.push("win");
+     return `<tr class="${cls.join(" ")}" style="animation-delay:${i*45}ms">`+st.cols.map(c=>{
+       let v=esc(String(r[c]));
+       if(c==="points"&&r[c]>0)v=`<span class="pts p${r[c]}">${v}</span>`;
+       return `<td class="${isNum(c)?"n":""}${nc(c)}">${v}</td>`;}).join("")+"</tr>";
+   }).join("")+"</tbody>";
+}
+function stop(){clearInterval(timer);timer=null;runBtn.textContent=step>=STEPS.length-1?"Run again":"Run the query";}
+function go(n){step=Math.max(0,Math.min(STEPS.length-1,n));drawStep();}
+runBtn.addEventListener("click",()=>{
+  if(timer){stop();return;}
+  if(step<0||step>=STEPS.length-1)go(0);else go(step+1);
+  runBtn.textContent="Pause";
+  timer=setInterval(()=>{if(step>=STEPS.length-1){stop();return;}go(step+1);if(step>=STEPS.length-1)stop();},3200);
+});
+nextBtn.addEventListener("click",()=>{if(timer)stop();go(step+1);runBtn.textContent=step>=STEPS.length-1?"Run again":"Continue";});
+prevBtn.addEventListener("click",()=>{if(timer)stop();go(step-1);runBtn.textContent="Continue";});
+drawStep();
+</script>
+</body>
+</html>
